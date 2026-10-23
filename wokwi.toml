@@ -1,0 +1,11 @@
+[wokwi]
+version = 1
+firmware = ".pio/build/esp32dev/firmware.merged.bin"
+elf = ".pio/build/esp32dev/firmware.elf"
+
+# Requires Wokwi VS Code >=4.0.0 / CLI >=0.28.0.
+# Dedicated output folder: writeback mirrors deletions too.
+[[sdcard]]
+folder = "sdcard"
+size = "8M"
+writeback = true
