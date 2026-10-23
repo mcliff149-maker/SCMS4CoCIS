@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "author": "SCMS4CoCIS Team",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp-main", "top": 30, "left": 40, "attrs": {} },
+    { "type": "wokwi-led", "id": "led-room1", "top": 10, "left": 320, "attrs": { "color": "yellow" } },
+    { "type": "wokwi-led", "id": "led-room2", "top": 60, "left": 320, "attrs": { "color": "yellow" } },
+    { "type": "wokwi-led", "id": "led-access", "top": 110, "left": 320, "attrs": { "color": "green" } },
+    { "type": "wokwi-pushbutton", "id": "btn-entry", "top": 180, "left": 300, "attrs": { "color": "green", "label": "ENTRY" } },
+    { "type": "wokwi-pushbutton", "id": "btn-exit", "top": 230, "left": 300, "attrs": { "color": "red", "label": "EXIT" } },
+    { "type": "wokwi-pushbutton", "id": "btn-r1", "top": 280, "left": 300, "attrs": { "label": "R1 OCC" } },
+    { "type": "wokwi-pushbutton", "id": "btn-r2", "top": 330, "left": 300, "attrs": { "label": "R2 OCC" } }
+  ],
+  "connections": [
+    [ "led-room1:A", "esp-main:2", "green", [ "h0" ] ],
+    [ "led-room1:C", "esp-main:GND.1", "black", [ "h0" ] ],
+
+    [ "led-room2:A", "esp-main:4", "green", [ "h0" ] ],
+    [ "led-room2:C", "esp-main:GND.2", "black", [ "h0" ] ],
+
+    [ "led-access:A", "esp-main:5", "green", [ "h0" ] ],
+    [ "led-access:C", "esp-main:GND.2", "black", [ "h0" ] ],
+
+    [ "btn-entry:1.l", "esp-main:12", "blue", [ "h0" ] ],
+    [ "btn-entry:2.l", "esp-main:GND.1", "black", [ "h0" ] ],
+
+    [ "btn-exit:1.l", "esp-main:13", "blue", [ "h0" ] ],
+    [ "btn-exit:2.l", "esp-main:GND.1", "black", [ "h0" ] ],
+
+    [ "btn-r1:1.l", "esp-main:14", "blue", [ "h0" ] ],
+    [ "btn-r1:2.l", "esp-main:GND.1", "black", [ "h0" ] ],
+
+    [ "btn-r2:1.l", "esp-main:27", "blue", [ "h0" ] ],
+    [ "btn-r2:2.l", "esp-main:GND.1", "black", [ "h0" ] ]
+  ],
+  "dependencies": {}
+}
