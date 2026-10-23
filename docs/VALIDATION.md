@@ -43,8 +43,16 @@ Standalone `idf.py build` is **NOT RUN**: IDF is not installed.
 Use README's VS Code path or TEST_PLAN's exact CLI command once built.
 
 **CI status:** the repository initially had only the active Copilot run; GitHub
-Actions lookup found no failed jobs/logs to diagnose. New host/firmware CI is
-configured; configuration is not a passing run. Check the PR's actual checks.
+Actions lookup found no failed jobs/logs to diagnose. After the implementation
+push, [PR run 39981815449](https://github.com/mcliff149-maker/SCMS4CoCIS/actions/runs/39981815449)
+and push run 39981810964 concluded **`action_required`**, with zero jobs on the
+PR run. Approval is needed; no host or firmware CI success is claimed.
+
+**Security/review:** changed-file secret scans found no secrets. Automated CodeQL
+reported **zero alerts** for actions, Python and C/C++. The bundled code-review
+binary was unavailable despite the wrapper's “success” heading; a separate
+read-only review of the committed branch found **no significant issues**.
+These checks are not proof that an uncompiled ESP-IDF binary is correct.
 
 ## Requirement assessment
 
