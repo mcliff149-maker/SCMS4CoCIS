@@ -1,4 +1,0 @@
-[wokwi]
-version = 1
-firmware = "../firmware/build/scms4cocis.bin"
-elf = "../firmware/build/scms4cocis.elf"

@@ -1,28 +1,24 @@
 #include "scheduler.h"
 #include "scms_config.h"
 
-static int g_open = DEFAULT_OPEN_HOUR;
-static int g_close = DEFAULT_CLOSE_HOUR;
+static unsigned g_open;
+static unsigned g_close;
 
 void schedule_init(void) {
-  g_open = DEFAULT_OPEN_HOUR;
-  g_close = DEFAULT_CLOSE_HOUR;
+  g_open = DEFAULT_OPEN_HOUR * 60;
+  g_close = DEFAULT_CLOSE_HOUR * 60;
 }
 
-bool schedule_is_open(int hour_of_day) {
-  return hour_of_day >= g_open && hour_of_day < g_close;
+bool schedule_is_open(int minute) {
+  return minute >= 0 && (unsigned)minute >= g_open && (unsigned)minute < g_close;
 }
 
-void schedule_set_window(int open_hour, int close_hour) {
-  if (open_hour < 0) open_hour = 0;
-  if (open_hour > 23) open_hour = 23;
-  if (close_hour < 1) close_hour = 1;
-  if (close_hour > 24) close_hour = 24;
-  if (open_hour >= close_hour) return;
-
-  g_open = open_hour;
-  g_close = close_hour;
+bool schedule_set_window(unsigned open, unsigned close) {
+  if (open >= close || close >= 1440) return false;
+  g_open = open;
+  g_close = close;
+  return true;
 }
 
-int schedule_open_hour(void) { return g_open; }
-int schedule_close_hour(void) { return g_close; }
+unsigned schedule_open_minute(void) { return g_open; }
+unsigned schedule_close_minute(void) { return g_close; }

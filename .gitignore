@@ -7,8 +7,20 @@ firmware/build/
 firmware/sdkconfig
 firmware/dependencies.lock
 
-# IDE
-.vscode/
+# PlatformIO / host tests
+.pio/
+build/
+sdkconfig.*
+!sdkconfig.defaults
+sdcard/*
+!sdcard/.gitkeep
+build-host*/
+
+# IDE (keep only portable workspace configuration)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
 .idea/
 
 # OS

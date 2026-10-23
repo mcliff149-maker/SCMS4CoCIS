@@ -23,6 +23,7 @@ typedef struct {
   uint32_t user_id;
   bool is_authorized;
   bool is_inside;
+  unsigned room;
 } scms_user_t;
 
 typedef struct {

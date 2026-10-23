@@ -1,0 +1,10 @@
+# Alternate configuration; select this instead of wokwi.toml for native idf.py.
+[wokwi]
+version = 1
+firmware = "firmware/build/flasher_args.json"
+elf = "firmware/build/scms4cocis.elf"
+
+[[sdcard]]
+folder = "sdcard"
+size = "8M"
+writeback = true
