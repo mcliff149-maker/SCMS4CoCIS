@@ -136,8 +136,12 @@ static bool runtime_command(const char *line) {
     } else {
       unsigned terminal = (unsigned)(id[0] - '0');
       sync_bus_set_online(terminal, strcmp(state, "on") == 0);
-      char event[64];
-      snprintf(event, sizeof(event), "TERMINAL terminal=%u state=%s", terminal, state);
+      char event[128];
+      unsigned minute = scms_minute();
+      snprintf(event, sizeof(event),
+               "day=%" PRIu64 " %02u:%02u TERMINAL terminal=%u state=%s",
+               scms_day(), minute / 60, minute % 60, terminal,
+               strcmp(state, "on") == 0 ? "on" : "off");
       log_event(event);
       printf("terminal %u %s (logical FreeRTOS worker)\n", terminal, state);
     }
@@ -226,9 +230,11 @@ void app_main(void) {
       /* Recovery commands remain available even when the entrance is offline. */
     } else if ((request.button >= 0 || terminal_event(request.line)) &&
                !sync_bus_online(request.terminal)) {
-      char event[64];
-      snprintf(event, sizeof(event), "TERMINAL terminal=%u request=offline_rejected",
-               request.terminal);
+      char event[128];
+      unsigned minute = scms_minute();
+      snprintf(event, sizeof(event),
+               "day=%" PRIu64 " %02u:%02u TERMINAL terminal=%u request=offline_rejected",
+               scms_day(), minute / 60, minute % 60, request.terminal);
       log_event(event);
       printf("ERROR terminal %u offline; request rejected\n", request.terminal);
     } else if (request.button >= 0) {
