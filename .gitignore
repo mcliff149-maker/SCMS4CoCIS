@@ -1,0 +1,6 @@
+.pio/
+sdkconfig.scms
+sdkconfig.scms.old
+sdkconfig
+sdkconfig.old
+sdcard/

@@ -1,0 +1,8 @@
+[wokwi]
+version = 1
+firmware = "wokwi-prebuilt-flash.json"
+elf = "firmware/scms.elf"
+
+[[chip]]
+name = "passage"
+binary = "passage.chip.wasm"

@@ -1,0 +1,8 @@
+{
+  "flash_settings": { "flash_size": "4MB" },
+  "flash_files": {
+    "0x1000": ".pio/build/scms/bootloader.bin",
+    "0x8000": ".pio/build/scms/partitions.bin",
+    "0x20000": ".pio/build/scms/firmware.bin"
+  }
+}

@@ -1,0 +1,121 @@
+SCMS4CoCIS - REVISED TWO-REGISTER SCHEMATIC
+
+This replaces the previous hardware plan. Do not mix the old board_pins.h with
+this diagram. The original project folder is retained separately.
+
+WEB EDITOR
+1. Use an ESP32 project.
+2. Add a custom chip named passage, language C, through the diagram editor.
+3. Replace passage.chip.json and passage.chip.c with the supplied contents.
+4. Replace diagram.json with the supplied revised diagram.
+5. The same custom chip type is instantiated five times; create it only once.
+
+ESP-IDF application firmware is now included in src/. Build using platformio.ini
+and follow RUN.txt. Do not retain an old blink app_main beside src/main.c.
+The custom-chip C file simulates sensors; it is NOT ESP32 application source.
+Keep passage.chip.c beside diagram.json, not inside src/.
+Put board_pins.h in include/, replacing the previous header.
+
+VS CODE / CLI
+Compile the custom model with:
+  wokwi-cli chip compile passage.chip.c -o passage.chip.wasm
+Later add this section to the real application project's wokwi.toml:
+  [[chip]]
+  name = "passage"
+  binary = "passage.chip.wasm"
+Keep passage.chip.json next to passage.chip.wasm.
+The [wokwi] configuration loads the complete PlatformIO flash layout through
+wokwi-flash.json, including the larger NVS partition used by the durable queue.
+
+PASSAGE MODEL
+Click the relevant passage chip while simulating.
+Set direction to 0 for A-then-B, or 1 for B-then-A.
+Change trigger from 0 to 1 OR from 1 to 0 for ONE crossing.
+Wait at least one second before the next toggle.
+The trigger is edge-based: leaving it at 1 does not repeatedly generate people.
+Direction is captured when the crossing starts; changing direction alone does
+not generate a crossing. Busy requests are rejected with a Chips Console message.
+
+Active HIGH means a beam is interrupted. Forward waveform:
+  idle 00 -> A 10 -> A+B 11 -> B 01 -> idle 00
+Reverse:
+  idle 00 -> B 01 -> A+B 11 -> A 10 -> idle 00
+Each non-idle phase lasts 200 ms. The model samples controls every 20 ms.
+At checkpoints/rooms, forward means inward. At the EXIT, forward means outward.
+The five models are independent; simultaneous crossings in different zones
+are possible. They simulate beam signals, not real people or optical physics.
+VCC/GND are schematic terminals; this model does not simulate supply failure.
+No RFID scan automatically triggers a crossing: movement is a separate action.
+
+TWO INPUT REGISTERS
+U2 Q7 -> U1 DS. U1 Q7 -> GPIO36 (VP). U2 DS -> GND.
+Both CP -> GPIO17 (TX2), both PL -> GPIO33, both CE -> GND.
+VCC -> 3.3V, GND -> common ground.
+Capture PL LOW then raise PL; read before each rising clock edge.
+Read U1 D7..D0 into byte 0, then U2 D7..D0 into byte 1.
+Assemble a 16-bit value as byte0 | (byte1 << 8).
+
+U1 D0/D1: checkpoint 1 A/B
+U1 D2/D3: checkpoint 2 A/B
+U1 D4/D5: exit A/B
+U1 D6/D7: Room 1 A/B
+U2 D0/D1: Room 2 A/B
+U2 D2: checkpoint 1 door switch
+U2 D3: checkpoint 2 door switch
+U2 D4: exit door switch
+U2 D5: simulated external fire-alarm signal
+U2 D6: Next menu button
+U2 D7: Select menu button
+
+There are only two pushbuttons: Next and Select. Hold Select to go back once
+the application implements this interface. Keyboard shortcuts N and S require
+diagram focus. Buttons are active HIGH with 10k pull-downs.
+No keypad or additional output shift register is used.
+The three door switches are manual feedback controls, not coupled to servos.
+LEFT means closed/LOW; RIGHT means open/HIGH.
+Fire switch LEFT normal/LOW, RIGHT alarm/HIGH.
+Emergency switch LEFT normal/HIGH, RIGHT alarm/LOW through GPIO39 directly.
+Emergency pin 1 is intentionally unused; an external 10k pull-up defines HIGH.
+
+DIRECT OUTPUTS
+Relay1 IN -> GPIO16 (RX2). Relay2 IN -> GPIO15.
+Both have 10k pull-ups; firmware must initialize both HIGH before operation.
+The documented default npn relay operation is LOW -> COM/NO, HIGH -> COM/NC.
+COM connects to 3.3V; NO powers a yellow LED through 330 ohms to ground.
+NC is unused. Display commanded lighting status; no physical feedback is fitted.
+
+Status WS2812 DIN -> 330-ohm resistor -> GPIO2, with a 10k GPIO2 pull-down.
+VDD -> VIN/5V, VSS -> GND. DOUT is unused.
+Firmware must send a WS2812 data frame, not an ordinary GPIO HIGH/LOW.
+This replaces all three individual status LEDs; use distinct color/flash modes.
+Emergency must take priority over ordinary grant/deny indication.
+Buzzer -> GPIO32 and ground.
+Servo PWM pins: entry25, checkpoint2=26, exit27; power VIN/5V and common ground.
+
+SPI AND I2C
+SPI SCK18, MOSI23, MISO19. CS: entry4, checkpoint2=13, exit14, SD5.
+Initialize all CS HIGH before transfers; each has a 10k pull-up.
+RFID RST -> 3.3V, IRQ unused; use soft reset in the future C driver.
+SD CD is unused. Serialize shared-bus transactions.
+LCD and RTC share SDA21/SCL22, with 4.7k pull-ups to 3.3V.
+LCD is I2C 0x27; RTC is 0x68. SQW is unused.
+RTC starts at host UTC time; Uganda display/schedules need UTC+03:00 conversion.
+UART0 TX0/RX0 remains available for the serial interface.
+
+POWER AND LIMITS
+3.3V supplies RFID, SD, shift-register ICs, passage models and input switches.
+VIN/5V supplies LCD, RTC, servos, PIRs, relays and the status LED.
+PIR outputs connect directly to GPIO34 and GPIO35.
+Common ground throughout. Long power/ground/bias wires are hidden for clarity.
+GPIO34/35/36/39 are input-only; GPIO39 needs the external emergency pull-up.
+GPIO2, GPIO5 and GPIO15 are boot-strapping pins. Bias is LOW, HIGH, HIGH
+respectively; peripherals must not override those levels during reset.
+GPIO16/17 assume the WROOM-style DevKit without PSRAM occupying those pins.
+
+This simulator wiring is not a hardware safety design. For physical hardware,
+check I2C level shifting/pull-ups, WS2812 input thresholds, relay logic and
+drivers, and provide adequate separate servo power with common ground.
+The DS1307 uses a 5V supply; do not blindly copy 5V I2C pull-ups to ESP32 pins.
+No mains voltage or hardwired independent emergency-release circuit is included.
+Returning an alarm switch to normal must not automatically clear emergency
+mode or reset occupancy once firmware is implemented.

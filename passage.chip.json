@@ -1,0 +1,23 @@
+{
+  "name": "Directional Passage Simulator",
+  "author": "SCMS4CoCIS",
+  "pins": ["VCC", "GND", "A", "B"],
+  "controls": [
+    {
+      "id": "direction",
+      "label": "Direction: 0 = A then B, 1 = B then A",
+      "type": "range",
+      "min": 0,
+      "max": 1,
+      "step": 1
+    },
+    {
+      "id": "trigger",
+      "label": "Toggle for one crossing; wait 1 second between crossings",
+      "type": "range",
+      "min": 0,
+      "max": 1,
+      "step": 1
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+[wokwi]
+version = 1
+firmware = "wokwi-flash.json"
+elf = ".pio/build/scms/firmware.elf"
+
+[[chip]]
+name = "passage"
+binary = "passage.chip.wasm"

@@ -1,0 +1,205 @@
+SCMS4CoCIS - COMPLETE C FIRMWARE
+================================
+
+PROJECT
+-------
+src/main.c: startup, dedicated input-sampling task, single state-owner loop
+src/hardware.c: actual ESP-IDF peripheral drivers, including MFRC522 SPI
+src/access_control.c: card policies, schedules, one-use fast pass, gates
+src/occupancy_lighting.c: directional passage validation and room lighting
+src/dashboard.c: LCD menus and serial commands
+src/storage.c: NVS checkpoints, durable 32-event queue and SD audit replay
+src/statistics.c: EAT daily entries, unique users, peak and busiest hour
+src/safety_recovery.c: emergency latch, authorised clearance and restart
+include/scms.h: shared types/interfaces
+include/board_pins.h: exact two-register schematic mapping
+
+No Arduino or C++ application code or third-party driver libraries are needed.
+ESP-IDF and its own build dependencies are supplied by PlatformIO.
+Only main.c defines app_main. Do not include .c files from other .c files.
+The CMake files list all sources and include directories.
+
+BUILD AND START (VS CODE + PLATFORMIO)
+-------------------------------------
+1. Open THIS folder in VS Code with PlatformIO and Wokwi extensions installed.
+2. Authenticate Wokwi locally with your licence. Do not share passwords/tokens.
+3. Build with: pio run -e scms
+4. passage.chip.wasm is supplied. To rebuild the custom sensor model:
+     wokwi-cli chip compile passage.chip.c -o passage.chip.wasm
+5. Start Wokwi using wokwi.toml.
+6. Do not replace wokwi-flash.json with PlatformIO's generated flasher_args.json.
+   The provided flash manifest uses the actual PlatformIO image filenames.
+
+Prebuilt native ESP-IDF 5.4 images are included in firmware/.
+To simulate without rebuilding, use the contents of wokwi-prebuilt.toml as
+wokwi.toml. Restore the PlatformIO version when switching to PlatformIO builds.
+firmware/scms-full.bin is the merged image for a simulator firmware upload.
+Rebuild after editing C files; prebuilt images do not change automatically.
+
+The custom partition table reserves 64KB NVS for a checkpoint containing both
+state and pending logs. App offset is 0x20000, NOT 0x10000.
+Changing partition tables on an existing physical board requires deliberate
+flash migration/erasure outside this demonstration; do not erase data casually.
+Firmware never automatically erases NVS or formats a failed SD card.
+
+Native ESP-IDF 5.4 also works:
+  idf.py set-target esp32
+  idf.py build
+For native builds, Wokwi's firmware path must reference build/flasher_args.json
+and ELF build/scms.elf, rather than the PlatformIO configuration.
+
+FIRST BOOT / EVERY RESTART
+--------------------------
+The LCD initially says VERIFY. This is intentional: a saved count cannot prove
+that no one moved during an outage. Ordinary entry is denied until verified.
+
+1. Confirm the emergency/fire switches are LEFT, doors LEFT/closed, PIRs idle.
+2. Present the Yellow RFID card at checkpoint 1. This opens a 60-second
+   management session; it does not admit or count the administrator.
+3. Physically verify the WHOLE simulated building is empty.
+4. Serial: verify-empty CONFIRM
+   OR LCD: Next to Administration -> Select -> Select Verify building empty
+   -> Select to confirm after physical checking.
+5. Blue and Green cards can now enter during allowed hours.
+
+Demo card registry:
+  Blue  01:02:03:04 : user
+  Green 11:22:33:44 : user
+  Yellow 55:66:77:88: administrator (management only at entry)
+  Red   AA:BB:CC:DD : unregistered
+These are fixed demo accounts. Adding arbitrary new UIDs requires changing
+access_control.c and rebuilding. enable/disable Blue/Green is supported at runtime.
+UID identification is a classroom demonstration, NOT cryptographically secure
+RFID authentication. The Admin card alone authenticates; no PIN is implemented.
+
+DEMONSTRATION JOURNEY
+---------------------
+1. Tap Blue at checkpoint 1. Servo opens for a 5-second passage window.
+2. Click pass_entry: direction 0, toggle trigger once within that window.
+   Confirmed crossing, not the card scan, adds one building occupant.
+3. Within 60 seconds, tap SAME Blue card at checkpoint 2.
+4. Click pass_cp2: direction 0, toggle trigger. It consumes the fast pass.
+   Building count stays at one.
+5. Click pass_room1: direction 0, toggle trigger. Room count rises; light ON.
+6. Click pass_room1: direction 1, toggle trigger. Count drops; after 10 seconds
+   with no presence and no uncertainty the light turns OFF.
+7. Tap Blue at exit, then pass_exit direction 0 and toggle trigger.
+   Building count falls; Blue becomes Outside.
+
+Each trigger CHANGE (0->1 OR 1->0) requests ONE crossing. Wait at least 1 second
+between crossings. Changing direction alone does not move anyone.
+Door switches are manual and not coupled to servos. Open/close them yourself
+if demonstrating door feedback. Open without authorization -> forced-door alert.
+Open over 10 seconds -> held-door alert. Closing removes the underlying fault.
+Closure commands wait for clear doorway beams and closed door feedback.
+If you leave a door switch open, do not expect the servo to be commanded closed.
+
+Tap-and-walk-away: scan a card, do NOT trigger passage; count does not change.
+Fast-pass expiry: let its 60 seconds pass, then try checkpoint 2.
+Denied attempts: Red card, disabled Blue/Green, or entry outside schedule.
+Three denied attempts in 30 seconds raise a security escalation event.
+Known disabled cards and unregistered cards can request exit. Unknown outward
+passage marks identity/count confidence uncertain instead of inventing identity.
+
+The custom model only generates complete A/B sequences. Test incomplete,
+stuck-beam and impossible sequence handling with unit tests or deliberate
+model modifications; this control panel does not expose a fault slider.
+
+LCD
+---
+N / Next: cycles overview, rooms, schedule, health, statistics, recent events,
+administration. S / Select: opens selected item; HOLD for 1 second to go back.
+On the recent-events page, Select cycles through the last eight in-memory events.
+Admin LCD operations: verify entire building empty, correct room counts,
+edit opening/closing in 30-minute steps, clear emergency, restart, logout.
+Next on a confirmation screen cancels; Select explicitly confirms.
+Re-scan Yellow if the 60-second admin session expires.
+Full logs and identities are available over serial.
+
+SERIAL COMMANDS (115200, line ending LF)
+--------------------------------------
+Public:
+  help
+  status
+  people
+  stats
+  logs
+
+After Yellow admin authentication:
+  schedule 07:00 22:00
+  verify-empty CONFIRM
+  room 1 0 CONFIRM
+  room 2 0 CONFIRM
+  disable blue
+  enable blue
+  disable green
+  enable green
+  emergency CONFIRM
+  clear-emergency CONFIRM
+  restart CONFIRM
+  logout
+
+Hours are in Uganda time EAT = UTC+03:00. RTC is read as UTC.
+Opening is inclusive, closing exclusive. Overnight schedules are supported.
+Equal opening/closing is rejected, not treated as 24-hour access.
+For an almost-all-day demonstration use: schedule 00:00 23:59
+Current time must be valid; no silent scheduling bypass exists.
+
+room N COUNT requires an admin session, no emergency, and a count not exceeding
+the building total. Zero is rejected while that room's PIR detects presence.
+verify-empty resets building identities AND both room counts only after an
+explicit operator confirmation; PIRs must be idle. It is not a casual reset.
+Nonzero building reconciliation is intentionally not offered: without checking
+individual identities, inventing who is inside would be misleading.
+
+EMERGENCY
+---------
+Move emergency or fire switch RIGHT. Firmware latches the incident, commands
+escape barriers open, lights both rooms and flashes/sounds the alarm.
+Restart preserves a saved emergency latch. Restoring switches alone does NOT
+clear it. Scan Yellow, physically confirm hazard/doors are safe, return switches
+LEFT, then clear-emergency CONFIRM. Next verify actual occupancy.
+No counts are silently reset on emergency clearance or reboot.
+
+STORAGE AND RECOVERY
+--------------------
+SD audit is /sdcard/events.csv. Fields: boot:sequence, UTC-or-0, type, detail.
+Zero timestamp explicitly means wall-clock time was unavailable.
+One state-owner task handles counters, statistics, persistence and decisions.
+A separate input-only task captures changed shift-register samples every 10ms,
+preserving beam edges during storage/display operations. Overflow is a visible
+input-gap fault, invalidates occupancy confidence, and blocks ordinary entry.
+The 8-second task watchdog is configured to panic/reset if the owner stalls.
+
+NVS checkpoints include the emergency latch, schedules, accounts' states,
+counts/statistics and pending event queue. Recoverable events replay to SD.
+Audit retries check event IDs; replay never applies occupancy deltas again.
+An interrupted final SD record is trimmed before the next record is appended.
+NVS commit failure blocks new ordinary entry. SD failures retry with a bounded
+queue; at 28 pending events new ordinary entry stops to preserve headroom.
+Queue overflow is reported explicitly; no unbounded/guaranteed-zero-loss claim.
+SD logging retries occur every 5 seconds after faults. A failed initial mount
+is retried; physical hot-removal/remount is not modeled as a separate feature.
+
+NVS writes are intentionally frequent for this demonstration's consistency.
+A physical long-life deployment needs flash-wear budgeting and a properly
+engineered power-fail design, not an assumption of unlimited flash endurance.
+
+LIMITS TO PRESENT HONESTLY
+-------------------------
+One ESP32 means a single controller failure affects all software services.
+Safe physical emergency egress MUST be independent; this model is not a
+life-safety controller. Servos do not certify safe doors or detect obstruction.
+Room sensors count people, not identities; PIR cannot prove an exact headcount.
+Relay/light status is commanded state, not measured lamp feedback.
+Passive shift-register inputs cannot self-diagnose every disconnected sensor.
+Initial driver errors and protocol faults are visible; fault diagnosis is not
+a promise of complete electrical self-test.
+Logs/unique visitor statistics use the fixed registered demo users.
+No network nodes, remote heartbeat, email or cloud dashboard is involved.
+
+Stopping/restarting Wokwi may recreate SD/flash differently from an ESP32 reset.
+Use the ESP32 reset control for restart scenarios and verify simulator
+persistence settings before claiming power-loss recovery. Set SD writeback in
+your local Wokwi configuration if you need records exported across simulator
+sessions. Do not claim a live simulation run merely because firmware compiles.

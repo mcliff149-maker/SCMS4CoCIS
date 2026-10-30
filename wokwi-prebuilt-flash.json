@@ -1,0 +1,8 @@
+{
+  "flash_settings": { "flash_size": "4MB" },
+  "flash_files": {
+    "0x1000": "firmware/bootloader.bin",
+    "0x8000": "firmware/partitions.bin",
+    "0x20000": "firmware/scms.bin"
+  }
+}
